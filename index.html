@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Combien de coffres pour le jeton pirate ?</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout : en-tête, barre d'actions pleine largeur, puis graphique (2/3) + panneau résultat (1/3) ; empilé sur mobile.
+   Palette : bleu-vert marin pour la distribution, or « trésor » pour TON résultat. */
+:root {
+  --bg: #eef2f3;
+  --surface: #ffffff;
+  --ink: #132a33;
+  --ink-2: #4a5f68;
+  --ink-3: #6f838c;
+  --line: #d3dde0;
+  --grid: #e7eef0;
+  --bar: #b9cbd2;
+  --bar-lucky: #3f8ea3;
+  --gold: #c27410;
+  --on-gold: #1d1405;
+  --gold-soft: #fbecd4;
+  --curve: #132a33;
+  --median: #24804f;
+  --mean: #6a4fc4;
+  --good: #24804f;
+  --bad: #c2410c;
+  --verybad: #b42318;
+  --error: #b42318;
+
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1a20; --surface: #12262e; --ink: #e6f0f2; --ink-2: #a9bec5; --ink-3: #7e959e;
+    --line: #25424c; --grid: #1a333c; --bar: #355561; --bar-lucky: #5fb4c9; --gold: #f2a33a;
+    --on-gold: #1d1405; --gold-soft: #3a2a12; --curve: #e6f0f2; --median: #4cc38a; --mean: #a993ff;
+    --good: #4cc38a; --bad: #f08a4b; --verybad: #ff6b5e; --error: #ff8a80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1a20; --surface: #12262e; --ink: #e6f0f2; --ink-2: #a9bec5; --ink-3: #7e959e;
+  --line: #25424c; --grid: #1a333c; --bar: #355561; --bar-lucky: #5fb4c9; --gold: #f2a33a;
+  --on-gold: #1d1405; --gold-soft: #3a2a12; --curve: #e6f0f2; --median: #4cc38a; --mean: #a993ff;
+  --good: #4cc38a; --bad: #f08a4b; --verybad: #ff6b5e; --error: #ff8a80;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 40px;
+}
+.wrap { max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+
+header h1 {
+  font-family: var(--f-display);
+  font-weight: 800;
+  font-size: clamp(26px, 4vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+  text-wrap: balance;
+}
+header p { margin: 0; color: var(--ink-2); max-width: 70ch; }
+.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+/* Barre d'actions */
+.actions {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px;
+  padding: 14px 18px;
+}
+.btn {
+  font: 600 15px/1 var(--f-body);
+  border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink);
+  padding: 11px 16px; cursor: pointer;
+}
+.btn:hover { border-color: var(--ink-3); }
+.btn:focus-visible, input:focus-visible { outline: 3px solid var(--bar-lucky); outline-offset: 2px; }
+.btn-primary {
+  background: var(--gold); color: var(--on-gold); border-color: var(--gold);
+  font-size: 16px; padding: 14px 22px;
+}
+.btn-primary:hover { filter: brightness(1.06); border-color: var(--gold); }
+.btn:disabled { opacity: .5; cursor: progress; }
+.hint { color: var(--ink-3); font-size: 13px; }
+.sep { width: 1px; align-self: stretch; background: var(--line); }
+.saisie { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.saisie label { font-weight: 600; }
+.saisie input {
+  font: 500 17px var(--f-mono);
+  width: 9.5em; padding: 9px 12px;
+  border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink);
+}
+.erreur { color: var(--error); font-size: 13px; flex-basis: 100%; }
+.erreur:empty { display: none; }
+
+/* Corps */
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+@media (max-width: 900px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+.chart-card { padding: 18px 18px 14px; min-width: 0; }
+.chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; align-items: baseline; }
+.chart-head h2 { font: 700 17px var(--f-display); margin: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.sw-line { width: 16px; height: 2px; border-radius: 1px; }
+.chart { position: relative; margin-top: 10px; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; }
+.chart text { font-family: var(--f-body); fill: var(--ink-3); font-size: 12px; }
+.tooltip {
+  position: absolute; pointer-events: none;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / .12);
+  padding: 8px 11px; font-size: 13px; line-height: 1.45; white-space: nowrap;
+}
+.tooltip b { font-family: var(--f-mono); font-weight: 700; }
+.reperes {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 18px;
+  border-top: 1px solid var(--grid); margin-top: 12px; padding-top: 12px;
+}
+.reperes div { display: flex; flex-direction: column; }
+.reperes dt { font-size: 12px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; }
+.reperes dd { margin: 0; font-family: var(--f-mono); font-size: 15px; }
+.reperes dd small { color: var(--ink-3); font-family: var(--f-body); font-size: 12px; }
+
+.side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.panel { padding: 16px 18px; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); margin: 0 0 6px; }
+.big { font: 700 clamp(34px, 5vw, 44px)/1.05 var(--f-mono); color: var(--gold); font-variant-numeric: tabular-nums; }
+.big-sub { color: var(--ink-2); font-size: 14px; }
+.facts { list-style: none; padding: 0; margin: 14px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.facts li { display: grid; grid-template-columns: 5.6em 1fr; gap: 10px; align-items: baseline; font-size: 14px; color: var(--ink-2); }
+.facts li b { font: 700 16px var(--f-mono); color: var(--ink); text-align: right; }
+.verdict {
+  margin-top: 14px; display: inline-flex; align-items: center; gap: 8px;
+  font-weight: 600; padding: 6px 12px; border-radius: 999px; border: 1px solid currentColor;
+}
+.verdict:empty { display: none; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin: 0; }
+.stats div { display: flex; flex-direction: column; }
+.stats dt { font-size: 12px; color: var(--ink-3); }
+.stats dd { margin: 0; font: 700 16px var(--f-mono); }
+.panel .btn { width: 100%; margin-top: 14px; }
+
+.explain { padding: 18px 20px; }
+.explain h2 { font: 700 18px var(--f-display); margin: 0 0 8px; }
+.explain p { margin: 0 0 10px; max-width: 75ch; color: var(--ink-2); }
+.explain p:last-child { margin-bottom: 0; }
+footer { color: var(--ink-3); font-size: 12px; text-align: center; }
+@media (prefers-reduced-motion: no-preference) {
+  .bar { transition: fill .25s; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Combien de coffres pour obtenir le jeton pirate&nbsp;?</h1>
+    <p>Chaque coffre a <b class="num">1 chance sur 137&nbsp;500</b> de donner le jeton. On a simulé <b class="num">1&nbsp;000&nbsp;000</b> de joueurs pour voir combien de coffres il leur a fallu. Lance ta propre simulation, ou entre ton vrai résultat pour voir où tu te situes.</p>
+  </header>
+
+  <section class="card actions" aria-label="Actions">
+    <button id="lancer" class="btn btn-primary" type="button" disabled>Lancer une simulation</button>
+    <span class="hint">Raccourci&nbsp;: Espace</span>
+    <span class="sep" aria-hidden="true"></span>
+    <form id="form-saisie" class="saisie" autocomplete="off">
+      <label for="saisie">Ton vrai résultat&nbsp;:</label>
+      <input id="saisie" type="text" inputmode="numeric" placeholder="ex : 85 000">
+      <span>coffres</span>
+      <button id="placer" class="btn" type="submit" disabled>Placer sur la distribution</button>
+      <span id="erreur" class="erreur" role="alert"></span>
+    </form>
+  </section>
+
+  <div class="main">
+    <section class="card chart-card" aria-label="Distribution">
+      <div class="chart-head">
+        <h2>Nombre de coffres ouverts avant d'obtenir le jeton</h2>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--bar)"></i>1 million de joueurs simulés</span>
+          <span><i class="sw sw-line" style="background:var(--curve)"></i>Loi théorique</span>
+          <span id="leg-res" hidden><i class="sw" style="background:var(--gold)"></i>Ta tranche</span>
+          <span id="leg-lucky" hidden><i class="sw" style="background:var(--bar-lucky)"></i>Plus chanceux que toi</span>
+        </div>
+      </div>
+      <div class="chart" id="chart">
+        <svg id="svg" role="img" aria-label="Histogramme du nombre de coffres ouverts"></svg>
+        <div class="tooltip" id="tooltip" hidden></div>
+      </div>
+      <dl class="reperes" id="reperes">
+        <div><dt>Médiane</dt><dd>…</dd></div>
+      </dl>
+    </section>
+
+    <aside class="side">
+      <section class="card panel" aria-live="polite">
+        <p class="eyebrow" id="res-titre">Ta simulation</p>
+        <div class="big" id="res-n">—</div>
+        <div class="big-sub" id="res-sub">Appuie sur « Lancer une simulation » ou entre ton vrai résultat.</div>
+        <ul class="facts" id="res-facts" hidden>
+          <li><b id="f-avant">—</b><span>des joueurs l'ont eu avec <strong>moins</strong> de coffres que toi</span></li>
+          <li><b id="f-apres">—</b><span>des joueurs ont dû en ouvrir <strong>plus</strong> que toi</span></li>
+          <li><b id="f-emp">—</b><span>ont fait mieux dans la simulation de 1 million de joueurs</span></li>
+        </ul>
+        <div class="verdict" id="verdict"></div>
+      </section>
+
+      <section class="card panel">
+        <p class="eyebrow">Tes simulations</p>
+        <dl class="stats">
+          <div><dt>Nombre</dt><dd id="s-nb">0</dd></div>
+          <div><dt>Moyenne</dt><dd id="s-moy">—</dd></div>
+          <div><dt>Meilleure</dt><dd id="s-min">—</dd></div>
+          <div><dt>Pire</dt><dd id="s-max">—</dd></div>
+        </dl>
+        <button id="reset" class="btn" type="button">Réinitialiser</button>
+      </section>
+    </aside>
+  </div>
+
+  <section class="card explain">
+    <h2>Pourquoi ce n'est pas une courbe en cloche</h2>
+    <p>On pourrait s'attendre à une courbe centrée sur la moyenne. En réalité, le nombre de coffres suit une <b>loi géométrique</b>&nbsp;: la courbe est la plus haute tout à gauche, puis descend régulièrement. Chaque coffre est un nouveau tirage, sans mémoire des précédents&nbsp;: avoir déjà ouvert 100&nbsp;000 coffres ne rend pas le suivant plus généreux.</p>
+    <p>Conséquence&nbsp;: la <b>moyenne</b> (<span class="num">137&nbsp;500</span> coffres) est tirée vers le haut par quelques joueurs très malchanceux. La <b>médiane</b> est plus basse (environ <span class="num">95&nbsp;300</span>)&nbsp;: la moitié des joueurs obtiennent le jeton avant ce seuil.</p>
+  </section>
+
+  <footer>Projet de fan, non officiel et sans lien avec Epic Games. Probabilité supposée&nbsp;: 1/137&nbsp;500 par coffre.</footer>
+</div>
+
+<script>
+(() => {
+  const P = 1 / 137500;
+  const LOGQ = Math.log1p(-P);
+  const ESPERANCE = 1 / P;
+  const MEDIANE = Math.ceil(Math.log(0.5) / LOGQ);
+  const N = 1_000_000;
+  const LARGEUR = 10_000;
+  const NB = 80;
+  const XMAX = LARGEUR * NB;
+
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => Math.round(n).toLocaleString("fr-FR");
+  const pct = (x) => (100 * x).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " %";
+  const auPlus = (n) => -Math.expm1(n * LOGQ);   // P(N ≤ n)
+
+  // Ouvre les coffres un par un jusqu'au jeton (comme dans le jeu).
+  function simulerUnJeton() {
+    let c = 0;
+    for (;;) { c++; if (Math.random() < P) return c; }
+  }
+  // Même loi, tirée directement (inversion de la fonction de répartition) : sert au million de joueurs.
+  const tirageRapide = () => Math.floor(Math.log(1 - Math.random()) / LOGQ) + 1;
+
+  let echantillons = null, comptes = null, debordement = 0;
+  let historique = [], dernier = null, reel = false, survol = null;
+
+  function genererDistribution() {
+    echantillons = new Int32Array(N);
+    comptes = new Array(NB).fill(0);
+    debordement = 0;
+    let somme = 0;
+    for (let i = 0; i < N; i++) {
+      const n = tirageRapide();
+      echantillons[i] = n; somme += n;
+      const k = Math.floor((n - 1) / LARGEUR);
+      if (k < NB) comptes[k]++; else debordement++;
+    }
+    echantillons.sort();
+    const q = (f) => echantillons[Math.floor(f * N)];
+    const items = [
+      ["Médiane", fmt(q(0.5)), `théorie ${fmt(MEDIANE)}`],
+      ["Moyenne", fmt(somme / N), `théorie ${fmt(ESPERANCE)}`],
+      ["10 % des joueurs", "≤ " + fmt(q(0.1)), "les plus chanceux"],
+      ["90 % des joueurs", "≤ " + fmt(q(0.9)), ""],
+      ["Pire cas simulé", fmt(echantillons[N - 1]), "coffres"],
+      [`Au-delà de ${fmt(XMAX)}`, pct(debordement / N), "hors graphique"],
+    ];
+    $("reperes").innerHTML = items.map(([t, v, s]) =>
+      `<div><dt>${t}</dt><dd>${v} ${s ? `<small>${s}</small>` : ""}</dd></div>`).join("");
+    $("lancer").disabled = false;
+    $("placer").disabled = false;
+  }
+
+  function bisectLeft(arr, x) {
+    let lo = 0, hi = arr.length;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m] < x) lo = m + 1; else hi = m; }
+    return lo;
+  }
+
+  // ---------------------------------------------------------------- Graphique
+  const svg = $("svg"), tip = $("tooltip"), chart = $("chart");
+  let geo = null;
+
+  function dessiner() {
+    if (!comptes) return;
+    const W = chart.clientWidth;
+    const H = Math.round(Math.min(480, Math.max(300, W * 0.52)));
+    const m = { l: 44, r: 12, t: 44, b: 40 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const yMax = 0.08;
+    const X = (v) => m.l + iw * v / XMAX;
+    const Y = (p) => m.t + ih * (1 - p / yMax);
+    geo = { m, iw, ih, X };
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+    const classeRes = dernier == null ? null : Math.min(Math.floor((dernier - 1) / LARGEUR), NB - 1);
+    let s = "";
+
+    // grille + axe Y
+    for (let k = 0; k <= 8; k += 2) {
+      const y = Y(k / 100);
+      s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="var(--grid)" />`;
+      s += `<text x="${m.l - 8}" y="${y + 4}" text-anchor="end">${k} %</text>`;
+    }
+
+    // barres
+    const bw = iw / NB, gap = bw > 6 ? 1.5 : 0.5;
+    for (let i = 0; i < NB; i++) {
+      const p = comptes[i] / N;
+      let fill = "var(--bar)";
+      if (classeRes != null) fill = i < classeRes ? "var(--bar-lucky)" : i === classeRes ? "var(--gold)" : "var(--bar)";
+      const x = m.l + i * bw + gap / 2, y = Y(p), h = Y(0) - y;
+      const stroke = i === survol ? `stroke="var(--ink)" stroke-width="1.5"` : "";
+      s += `<rect class="bar" x="${x}" y="${y}" width="${Math.max(bw - gap, 0.5)}" height="${h}" rx="${Math.min(2, bw / 4)}" fill="${fill}" ${stroke}/>`;
+    }
+
+    // courbe théorique
+    let pts = [];
+    for (let i = 0; i < NB; i++) {
+      const a = i * LARGEUR, b = a + LARGEUR;
+      pts.push(`${X((a + b) / 2).toFixed(1)},${Y(auPlus(b) - auPlus(a)).toFixed(1)}`);
+    }
+    s += `<polyline points="${pts.join(" ")}" fill="none" stroke="var(--curve)" stroke-width="2" stroke-linejoin="round" />`;
+
+    // axe X
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(0)}" y2="${Y(0)}" stroke="var(--ink-3)" />`;
+    const pas = W < 560 ? 200_000 : 100_000;
+    for (let v = 0; v <= XMAX; v += pas) {
+      const x = X(v);
+      s += `<line x1="${x}" x2="${x}" y1="${Y(0)}" y2="${Y(0) + 5}" stroke="var(--ink-3)" />`;
+      const anchor = v === 0 ? "start" : v === XMAX ? "end" : "middle";
+      s += `<text x="${x}" y="${Y(0) + 19}" text-anchor="${anchor}">${v === 0 ? "0" : (v / 1000) + " k"}</text>`;
+    }
+    s += `<text x="${m.l + iw / 2}" y="${H - 4}" text-anchor="middle">Nombre de coffres ouverts</text>`;
+    s += `<text x="${m.l - 8}" y="${m.t - 28}" text-anchor="start" style="font-size:12px">% des joueurs par tranche de ${fmt(LARGEUR)} coffres</text>`;
+
+    // médiane (étiquette à gauche) et espérance (à droite)
+    const xMed = X(MEDIANE), xEsp = X(ESPERANCE);
+    s += `<line x1="${xMed}" x2="${xMed}" y1="${m.t - 6}" y2="${Y(0)}" stroke="var(--median)" stroke-width="2" stroke-dasharray="5 4" />`;
+    s += `<line x1="${xEsp}" x2="${xEsp}" y1="${m.t - 6}" y2="${Y(0)}" stroke="var(--mean)" stroke-width="2" stroke-dasharray="5 4" />`;
+    s += `<text x="${xMed - 5}" y="${m.t - 10}" text-anchor="end" style="fill:var(--median);font-weight:600">Médiane ${fmt(MEDIANE)}</text>`;
+    s += `<text x="${xEsp + 5}" y="${m.t - 10}" text-anchor="start" style="fill:var(--mean);font-weight:600">Moyenne ${fmt(ESPERANCE)}</text>`;
+
+    // simulations précédentes : petits triangles sur l'axe
+    for (const n of historique.slice(0, reel ? historique.length : -1)) {
+      const x = X(Math.min(n, XMAX)), y = Y(0);
+      s += `<path d="M${x} ${y - 1} l-4 -8 h8 z" fill="var(--ink-3)" />`;
+    }
+
+    // résultat courant
+    if (dernier != null) {
+      const x = X(Math.min(dernier, XMAX));
+      const nom = reel ? "Ton jeton" : "Toi";
+      const label = `${nom} : ${fmt(dernier)}${dernier > XMAX ? " →" : ""}`;
+      const droite = x > m.l + iw * 0.6;
+      const ty = m.t + 28;
+      s += `<line x1="${x}" x2="${x}" y1="${ty + 8}" y2="${Y(0)}" stroke="var(--gold)" stroke-width="3" />`;
+      s += `<text x="${x + (droite ? -8 : 8)}" y="${ty}" text-anchor="${droite ? "end" : "start"}" style="fill:var(--gold);font-weight:700;font-size:15px;font-family:var(--f-mono)">${label}</text>`;
+    }
+    svg.innerHTML = s;
+  }
+
+  function surSurvol(ev) {
+    if (!geo) return;
+    const r = svg.getBoundingClientRect();
+    const sx = (ev.clientX - r.left) * (svg.viewBox.baseVal.width / r.width);
+    const i = Math.floor((sx - geo.m.l) / geo.iw * NB);
+    if (i < 0 || i >= NB) return cacherTip();
+    if (i !== survol) { survol = i; dessiner(); }
+    const a = i * LARGEUR + 1, b = (i + 1) * LARGEUR;
+    tip.innerHTML =
+      `<div><b>${fmt(a)} – ${fmt(b)}</b> coffres</div>` +
+      `<div>Simulé : <b>${pct(comptes[i] / N)}</b> · Théorie : <b>${pct(auPlus(b) - auPlus(a - 1))}</b></div>` +
+      `<div>Ont eu le jeton avant ${fmt(b)} : <b>${pct(auPlus(b))}</b></div>`;
+    tip.hidden = false;
+    const cw = chart.clientWidth, tw = tip.offsetWidth;
+    let left = ev.clientX - chart.getBoundingClientRect().left + 14;
+    if (left + tw > cw) left = Math.max(0, left - tw - 28);
+    tip.style.left = left + "px";
+    tip.style.top = "56px";
+  }
+  function cacherTip() {
+    tip.hidden = true;
+    if (survol !== null) { survol = null; dessiner(); }
+  }
+  svg.addEventListener("pointermove", surSurvol);
+  svg.addEventListener("pointerleave", cacherTip);
+  new ResizeObserver(() => dessiner()).observe(chart);
+
+  // ---------------------------------------------------------------- Résultat
+  function afficher(n) {
+    dernier = n;
+    const avant = auPlus(n - 1), apres = 1 - auPlus(n);
+    const emp = bisectLeft(echantillons, n) / N;
+    $("res-titre").textContent = reel ? "Ton vrai résultat" : "Ta simulation";
+    $("res-n").textContent = fmt(n);
+    $("res-sub").textContent = "coffres ouverts";
+    $("res-facts").hidden = false;
+    $("f-avant").textContent = pct(avant);
+    $("f-apres").textContent = pct(apres);
+    $("f-emp").textContent = pct(emp);
+    let txt, col;
+    if (avant < 0.10) [txt, col] = ["▲▲ Très chanceux", "var(--good)"];
+    else if (avant < 0.40) [txt, col] = ["▲ Plutôt chanceux", "var(--good)"];
+    else if (avant < 0.60) [txt, col] = ["● Dans la moyenne", "var(--ink-2)"];
+    else if (avant < 0.90) [txt, col] = ["▼ Plutôt malchanceux", "var(--bad)"];
+    else [txt, col] = ["▼▼ Très malchanceux", "var(--verybad)"];
+    const v = $("verdict");
+    v.textContent = txt; v.style.color = col;
+    $("leg-res").hidden = false; $("leg-lucky").hidden = false;
+    dessiner();
+  }
+
+  function majStats() {
+    const nb = historique.length;
+    $("s-nb").textContent = nb;
+    $("s-moy").textContent = nb ? fmt(historique.reduce((a, b) => a + b, 0) / nb) : "—";
+    $("s-min").textContent = nb ? fmt(Math.min(...historique)) : "—";
+    $("s-max").textContent = nb ? fmt(Math.max(...historique)) : "—";
+  }
+
+  function lancer() {
+    if (!echantillons) return;
+    const n = simulerUnJeton();
+    historique.push(n);
+    reel = false;
+    majStats();
+    afficher(n);
+  }
+
+  $("lancer").addEventListener("click", lancer);
+  $("form-saisie").addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!echantillons) return;
+    const brut = $("saisie").value.replace(/[\s.  ]/g, "");
+    if (!/^\d+$/.test(brut) || Number(brut) < 1) {
+      $("erreur").textContent = "Entre un nombre entier supérieur ou égal à 1, par exemple 85 000.";
+      return;
+    }
+    $("erreur").textContent = "";
+    reel = true;
+    afficher(Number(brut));
+  });
+  $("reset").addEventListener("click", () => {
+    historique = []; dernier = null; reel = false;
+    $("saisie").value = ""; $("erreur").textContent = "";
+    $("res-titre").textContent = "Ta simulation";
+    $("res-n").textContent = "—";
+    $("res-sub").textContent = "Appuie sur « Lancer une simulation » ou entre ton vrai résultat.";
+    $("res-facts").hidden = true;
+    $("verdict").textContent = "";
+    $("leg-res").hidden = true; $("leg-lucky").hidden = true;
+    majStats(); dessiner();
+  });
+  document.addEventListener("keydown", (e) => {
+    const t = e.target;
+    if (e.code === "Space" && !(t instanceof HTMLInputElement) && !(t instanceof HTMLButtonElement)) {
+      e.preventDefault(); lancer();
+    }
+  });
+
+  // Afficher le message de chargement, puis calculer la distribution
+  svg.setAttribute("viewBox", "0 0 600 300");
+  svg.innerHTML = `<text x="300" y="150" text-anchor="middle" style="font-size:15px">Simulation de 1 000 000 de joueurs…</text>`;
+  requestAnimationFrame(() => setTimeout(() => { genererDistribution(); dessiner(); }, 30));
+})();
+</script>
